@@ -1,14 +1,37 @@
 # Créditos de imagens
 
-Fotos provisórias de banco gratuito, usadas até a produção fotográfica da
-FolhaTec. Todas sob a [Unsplash License](https://unsplash.com/license): uso
-comercial permitido, sem atribuição obrigatória (créditos mantidos por boa
-prática). Nenhuma é Unsplash+ (licença paga).
+Imagens provisórias, usadas até a produção fotográfica da FolhaTec. Nenhuma
+mostra a estrutura, a equipe ou produtos reais da FolhaTec — são apenas
+ilustrativas e não devem ser usadas como prova (estrutura, história, cases).
+
+## Ilustrações geradas por IA
+
+Geradas no imagen.art pela agência (21/10/2026) e aprovadas pelo cliente.
+Sem marcas, logos ou textos legíveis; convertidas para JPG (qualidade 82).
+
+| Arquivo (`public/images/`)      | Uso                                   |
+| ------------------------------- | ------------------------------------- |
+| `hero-impressora-etiquetas.jpg` | Home — bloco amarelo (hero)           |
+| `aplicacoes-armazem.jpg`        | Home — faixa de aplicações (21:9)     |
+| `solucao-etiquetas.jpg`         | Solução Etiquetas (card e topo)       |
+| `solucao-ribbons.jpg`           | Solução Ribbons                       |
+| `solucao-equipamentos.jpg`      | Solução Equipamentos                  |
+| `solucao-especiais.jpg`         | Solução Soluções especiais            |
+| `segmento-alimentos.jpg`        | Segmento Alimentos e pescados         |
+| `segmento-logistica.jpg`        | Segmento Logística e transporte       |
+| `segmento-quimico.jpg`          | Segmento Químico                      |
+| `segmento-industria.jpg`        | Segmento Indústria                    |
+
+Descartada: a ilustração "fábrica de etiquetas" (exibia a marca real de um
+fabricante de impressoras e sugeria ser a fábrica da FolhaTec).
+
+## Banco gratuito
+
+[Unsplash License](https://unsplash.com/license): uso comercial permitido, sem
+atribuição obrigatória (crédito mantido por boa prática).
 
 | Arquivo (`public/images/`)   | Uso                         | Autor             | Origem |
 | ---------------------------- | --------------------------- | ----------------- | ------ |
-| `hero-etiquetas-maquina.jpg` | Home — bloco amarelo        | Anthony Roberts   | https://unsplash.com/photos/worker-feeding-labels-into-a-machine-zDcJ2DFew9M |
-| `aplicacoes-logistica.jpg`   | Home — faixa de aplicações  | Hyundai Motor Group | https://unsplash.com/photos/a-factory-filled-with-lots-of-machines-and-boxes-h2rWePLKxvs |
 | `empresa-industria.jpg`      | Empresa — topo              | Homa Appliances   | https://unsplash.com/photos/a-large-machine-in-a-large-building-pWUyHVJgLhg |
 
 Logos (agência, "Elementos PNG", 07/10/2026), com fundo removido:
@@ -21,4 +44,4 @@ Ainda vale pedir os arquivos vetoriais (SVG) do logo e do wordmark branco.
 
 Substituição: trocar os arquivos (mantendo proporção) ou cadastrar as fotos
 reais no Sanity (`homePage.hero.image`, `homePage.applications.image`,
-`companyPage.hero.image`).
+`companyPage.hero.image`, `solution.image`, `segment.image`).

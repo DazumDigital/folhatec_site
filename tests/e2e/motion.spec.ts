@@ -79,7 +79,7 @@ test.describe("Hover em dispositivos com mouse", () => {
     expect(await bar.evaluate((el) => getComputedStyle(el).scale)).toMatch(/^0/);
     await card.hover();
     await expect.poll(() => bar.evaluate((el) => getComputedStyle(el).scale)).toMatch(/^1( 1)?$/);
-    const image = card.locator("svg").first();
+    const image = card.locator("img").first();
     await expect.poll(() => image.evaluate((el) => getComputedStyle(el).scale)).toMatch(/^1\.04/);
   });
 

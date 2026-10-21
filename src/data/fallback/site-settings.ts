@@ -38,7 +38,7 @@ export const fallbackSiteSettings: SiteSettings = {
     whatsapp: null,
     email: "folhatec@folhatec.com.br",
     address: {
-      street: "Rua José Brunner, 283, Galpão 06",
+      street: "Rua José Brunner, 283, Galpão 01",
       district: "Czerniewicz",
       city: "Jaraguá do Sul",
       state: "SC",

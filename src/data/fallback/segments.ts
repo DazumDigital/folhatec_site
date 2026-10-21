@@ -1,5 +1,5 @@
 import type { Segment } from "@/types/content";
-import { emptySeo, serviceDifferentiators } from "./shared";
+import { emptySeo, illustration, serviceDifferentiators } from "./shared";
 
 /**
  * Segmentos citados no briefing (seção 8). Desafios listados conforme o
@@ -13,7 +13,7 @@ export const fallbackSegments: Segment[] = [
       "Identificação para operações com umidade, refrigeração, grandes volumes e prazos curtos.",
     description:
       "Em alimentos, pescados e frigoríficos, a identificação acompanha processos com umidade, refrigeração e grandes volumes, muitas vezes com janelas curtas de expedição. A etiqueta representa um custo pequeno na operação, mas a sua falta pode impedir a liberação do produto.",
-    image: null,
+    image: illustration("segmento-alimentos", "Linha de embalagem de alimentos com bandejas etiquetadas"),
     visual: "food",
     challenges: [
       { label: "Umidade", description: "Etiquetas que precisam se manter aplicadas e legíveis em ambientes úmidos." },
@@ -48,7 +48,7 @@ export const fallbackSegments: Segment[] = [
       "Identificação para expedição, rastreamento e leitura de códigos ao longo do transporte.",
     description:
       "Na logística e no transporte, a identificação acompanha o volume em diferentes etapas: separação, expedição, transporte e recebimento. A especificação precisa considerar a leitura dos códigos e as condições a que a etiqueta estará exposta no caminho.",
-    image: null,
+    image: illustration("segmento-logistica", "Paletes com caixas etiquetadas em centro de distribuição"),
     visual: "logistics",
     challenges: [
       { label: "Identificação de volumes", description: "Informação clara em cada etapa do fluxo." },
@@ -83,7 +83,7 @@ export const fallbackSegments: Segment[] = [
       "Identificação para ambientes agressivos e processos com requisitos técnicos específicos.",
     description:
       "Aplicações do setor químico podem envolver ambientes agressivos, contato com produtos e requisitos técnicos particulares. A especificação parte das condições reais do processo para indicar uma identificação que permaneça legível e aplicada.",
-    image: null,
+    image: illustration("segmento-quimico", "Tambores e contêineres químicos identificados com etiquetas"),
     visual: "chemical",
     challenges: [
       { label: "Resistência", description: "Identificação que suporta as condições do processo." },
@@ -116,7 +116,7 @@ export const fallbackSegments: Segment[] = [
       "Identificação para borracha, plásticos e demais operações industriais.",
     description:
       "A indústria reúne cenários muito diferentes entre si. Por isso, a conversa começa pela aplicação, pelas condições de uso e pelo objetivo da identificação — seja em produção, estoque ou expedição.",
-    image: null,
+    image: illustration("segmento-industria", "Peças metálicas identificadas com etiquetas em linha de produção"),
     visual: "industry",
     challenges: [
       { label: "Processos diferentes", description: "Cada linha tem suas próprias condições de uso." },

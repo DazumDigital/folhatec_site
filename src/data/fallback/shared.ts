@@ -1,4 +1,4 @@
-import type { LabeledValue, SeoFields } from "@/types/content";
+import type { ContentImage, LabeledValue, SeoFields } from "@/types/content";
 
 export const emptySeo: SeoFields = {
   title: null,
@@ -27,3 +27,11 @@ export const serviceDifferentiators: LabeledValue[] = [
       "Relação consultiva, com entendimento da operação e das demandas do cliente.",
   },
 ];
+
+/**
+ * Imagem ilustrativa provisória (gerada por IA, 1536×1024) dos cards de
+ * soluções e segmentos — créditos em docs/image-credits.md.
+ */
+export function illustration(file: string, alt: string): ContentImage {
+  return { url: `/images/${file}.jpg`, alt, width: 1536, height: 1024, blurDataUrl: null };
+}

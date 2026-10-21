@@ -1,23 +1,23 @@
 import type { CompanyContent, ContentImage, HomeContent } from "@/types/content";
 
 /*
- * Fotos de banco gratuito (Unsplash License: uso comercial permitido, sem
- * atribuição obrigatória) — créditos em docs/image-credits.md. Substituir por
- * fotos reais da FolhaTec assim que houver produção fotográfica.
+ * Imagens provisórias (ilustrativas geradas por IA e foto de banco gratuito)
+ * — créditos em docs/image-credits.md. Substituir por fotos reais da
+ * FolhaTec assim que houver produção fotográfica.
  */
 const heroImage: ContentImage = {
-  url: "/images/hero-etiquetas-maquina.jpg",
-  alt: "Etiquetas saindo de uma máquina em ambiente industrial",
-  width: 1400,
-  height: 2100,
+  url: "/images/hero-impressora-etiquetas.jpg",
+  alt: "Impressora térmica imprimindo etiquetas adesivas em ambiente industrial",
+  width: 1536,
+  height: 1024,
   blurDataUrl: null,
 };
 
 const applicationsImage: ContentImage = {
-  url: "/images/aplicacoes-logistica.jpg",
-  alt: "Centro logístico com esteiras transportando caixas",
-  width: 2400,
-  height: 1348,
+  url: "/images/aplicacoes-armazem.jpg",
+  alt: "Operador lendo códigos de barras de caixas em um armazém",
+  width: 1920,
+  height: 819,
   blurDataUrl: null,
 };
 

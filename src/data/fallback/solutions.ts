@@ -1,5 +1,5 @@
 import type { Solution } from "@/types/content";
-import { emptySeo, serviceDifferentiators } from "./shared";
+import { emptySeo, illustration, serviceDifferentiators } from "./shared";
 
 /**
  * Categorias de solução citadas no briefing (menu e bloco 3 da Home).
@@ -19,7 +19,7 @@ export const fallbackSolutions: Solution[] = [
       "Etiquetas especificadas a partir da aplicação, do ambiente e do processo de cada operação.",
     description:
       "A etiqueta adequada depende de onde e como ela será utilizada. Antes de indicar um material, a FolhaTec procura entender a aplicação, as condições do ambiente e o papel da identificação dentro do processo — da produção à expedição.",
-    image: null,
+    image: illustration("solucao-etiquetas", "Rolos de etiquetas adesivas em diferentes formatos e cores"),
     visual: "labels",
     applications: [
       {
@@ -68,7 +68,7 @@ export const fallbackSolutions: Solution[] = [
       "Ribbons para impressão de identificação, indicados conforme equipamento, material e aplicação.",
     description:
       "A qualidade e a durabilidade da impressão dependem da combinação entre ribbon, material da etiqueta e equipamento. A indicação parte dessas variáveis e das condições às quais a identificação estará exposta.",
-    image: null,
+    image: illustration("solucao-ribbons", "Rolos de ribbon para impressão por transferência térmica"),
     visual: "ribbons",
     applications: [
       {
@@ -110,7 +110,7 @@ export const fallbackSolutions: Solution[] = [
       "Equipamentos de impressão e identificação para apoiar a rotina da operação.",
     description:
       "A escolha de um equipamento envolve volume, ambiente, integração com o processo e compatibilidade com etiquetas e ribbons. A conversa começa pelo cenário de uso para indicar a alternativa adequada.",
-    image: null,
+    image: illustration("solucao-equipamentos", "Impressora de etiquetas e leitor de código de barras sobre bancada"),
     visual: "equipment",
     applications: [
       {
@@ -152,7 +152,7 @@ export const fallbackSolutions: Solution[] = [
       "Projetos personalizados para aplicações que não se resolvem com uma solução padronizada.",
     description:
       "Algumas aplicações exigem uma combinação específica de material, formato, impressão e resistência. Nesses casos, o projeto é construído a partir das condições reais da operação e do objetivo da identificação.",
-    image: null,
+    image: illustration("solucao-especiais", "Etiqueta resistente aplicada em peça metálica industrial"),
     visual: "special",
     applications: [
       {
