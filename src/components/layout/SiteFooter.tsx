@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ContactChannels } from "@/components/sections/ContactChannels";
 import { QuoteCta } from "@/components/sections/QuoteCta";
 import { getSegments, getSiteSettings, getSolutions } from "@/lib/content";
+import { FooterSegmentsNav } from "./FooterSegmentsNav";
 import { Logo } from "./Logo";
 
 export async function SiteFooter() {
@@ -38,14 +39,10 @@ export async function SiteFooter() {
           <h2 className="text-xs font-semibold uppercase tracking-[0.16em] text-accent-on-dark">Navegação</h2>
           <ul className="mt-5 grid gap-3 text-sm">
             <li><Link href="/empresa" className={linkClass}>Empresa</Link></li>
-            <li><Link href="/segmentos" className={linkClass}>Segmentos</Link></li>
-            {segments.slice(0, 4).map((segment) => (
-              <li key={segment.slug} className="pl-3">
-                <Link href={`/segmentos/${segment.slug}`} className={linkClass}>
-                  {segment.title}
-                </Link>
-              </li>
-            ))}
+            <FooterSegmentsNav
+              segments={segments.map(({ slug, title }) => ({ slug, title }))}
+              linkClass={linkClass}
+            />
             <li><Link href="/conteudos" className={linkClass}>Conteúdos</Link></li>
             <li><Link href="/contato" className={linkClass}>Contato</Link></li>
           </ul>
@@ -68,11 +65,6 @@ export async function SiteFooter() {
             © {year} {legalLine}
           </p>
           <div className="flex flex-wrap gap-x-6 gap-y-2">
-            {settings.socialLinks.map((link) => (
-              <a key={link.url} href={link.url} target="_blank" rel="noopener noreferrer" className="hover:text-white">
-                {link.label}
-              </a>
-            ))}
             <Link href="/politica-de-privacidade" className="hover:text-white">
               Política de Privacidade
             </Link>

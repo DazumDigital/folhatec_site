@@ -14,7 +14,8 @@ export type IconName =
   | "scan"
   | "shield"
   | "spark"
-  | "file";
+  | "file"
+  | "instagram";
 
 /** Ícones técnicos simples em traço. Sempre decorativos (aria-hidden). */
 export function Icon({ name, size = 20, className }: { name: IconName; size?: number; className?: string }) {
@@ -47,6 +48,8 @@ export function Icon({ name, size = 20, className }: { name: IconName; size?: nu
       return <svg {...common}><path d="M20 11.5a8.5 8.5 0 0 1-9 8.5 9.7 9.7 0 0 1-4-.9L3.5 20l.9-3.2A8.4 8.4 0 0 1 3 12.2C3 7.5 6.8 4 11.5 4S20 7 20 11.5Z" /></svg>;
     case "phone":
       return <svg {...common}><path d="M7 4h3l1.2 4-2 1.5a13.2 13.2 0 0 0 5.3 5.3l1.5-2 4 1.2v3a2 2 0 0 1-2.2 2C10.4 18.3 5.7 13.6 5 6.2A2 2 0 0 1 7 4Z" /></svg>;
+    case "instagram":
+      return <svg {...common}><rect x="3.5" y="3.5" width="17" height="17" rx="5" /><circle cx="12" cy="12" r="4" /><path d="M17.2 6.8h.01" /></svg>;
     case "mail":
       return <svg {...common}><rect x="3" y="5" width="18" height="14" rx="2" /><path d="m4 7 8 6 8-6" /></svg>;
     case "pin":

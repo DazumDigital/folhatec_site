@@ -16,7 +16,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 export const metadata: Metadata = buildMetadata({
   title: "Segmentos atendidos",
   description:
-    "Soluções de identificação para alimentos e pescados, logística e transporte, setor químico e demais operações industriais.",
+    "Soluções de identificação para alimentos e pescados, logística, setor químico, indústria, vidros, hospitais e laboratórios, criogenia e eletroeletrônico.",
   path: "/segmentos",
 });
 

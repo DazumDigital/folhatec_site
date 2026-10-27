@@ -69,3 +69,47 @@ test("nenhum texto técnico interno visível nas páginas públicas", async ({ p
     }
   }
 });
+
+test.describe("Segmentos incluídos a pedido do cliente", () => {
+  const NEW_SEGMENTS = [
+    { slug: "vidros", title: "Indústria de vidros", image: "segmento-vidros" },
+    { slug: "hospitais-laboratorios", title: "Hospitais e laboratórios", image: "segmento-hospitais-laboratorios" },
+    { slug: "criogenia", title: "Criogenia", image: "segmento-criogenia" },
+    { slug: "eletroeletronico", title: "Eletroeletrônico", image: "segmento-eletroeletronico" },
+  ];
+
+  test("cards na listagem com imagem própria e link para a página", async ({ page }) => {
+    await page.goto("/segmentos");
+    for (const segment of NEW_SEGMENTS) {
+      const card = page.locator("article", { hasText: segment.title }).first();
+      await expect(card.locator("img")).toHaveAttribute("src", new RegExp(`${segment.image}\.jpg`));
+      await expect(card.getByRole("link", { name: new RegExp(segment.title) }).first()).toHaveAttribute("href", `/segmentos/${segment.slug}`);
+    }
+  });
+
+  for (const segment of NEW_SEGMENTS) {
+    test(`/segmentos/${segment.slug}: título, imagem e cotação com contexto`, async ({ page }) => {
+      await page.goto(`/segmentos/${segment.slug}`);
+      await expect(page.locator("h1")).toContainText(segment.title);
+      await expect(page.locator("main img").first()).toHaveAttribute("src", new RegExp(`${segment.image}\.jpg`));
+      await expect(page.locator(`main a[href="/solicitar-cotacao?segmento=${segment.slug}"]`).first()).toBeVisible();
+    });
+  }
+});
+
+test.describe("Instagram oficial", () => {
+  for (const [route, scope] of [
+    ["/contato", "main"],
+    ["/", "footer"],
+  ] as const) {
+    test(`${route}: link no ${scope === "main" ? "conteúdo" : "rodapé"}, em nova aba e com rel seguro`, async ({ page }) => {
+      await page.goto(route);
+      const links = page.locator(`${scope} a[href="https://www.instagram.com/folhatec/"]`);
+      await expect(links).toHaveCount(1);
+      await expect(links).toHaveText("@folhatec");
+      await expect(links).toHaveAttribute("target", "_blank");
+      await expect(links).toHaveAttribute("rel", "noopener noreferrer");
+      await expect(links).toHaveAccessibleName(/Instagram da FolhaTec/);
+    });
+  }
+});

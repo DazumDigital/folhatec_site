@@ -5,8 +5,14 @@ import { Icon, type IconName } from "@/components/ui/Icon";
 import { buildEmailHref, buildPhoneHref, buildWhatsAppUrl, formatAddress } from "@/lib/contact";
 import { cn } from "@/lib/cn";
 
+/** "@usuario" a partir de uma URL do Instagram; null para outras redes. */
+function instagramHandle(url: string): string | null {
+  const match = /^https:\/\/(?:www\.)?instagram\.com\/([\w.]+)\/?$/.exec(url);
+  return match?.[1] ?? null;
+}
+
 /**
- * Canais de contato a partir de SiteSettings. Cada canal só aparece quando
+ * Canais de contato a partir de SiteSettings (inclui as redes sociais). Cada canal só aparece quando
  * configurado. Retorna null se nenhum existir.
  */
 export function ContactChannels({
@@ -73,6 +79,26 @@ export function ContactChannels({
   if (address) channels.push({ key: "address", icon: "pin", label: "Endereço", value: address });
   if (contact.businessHours) {
     channels.push({ key: "hours", icon: "clock", label: "Horário de atendimento", value: contact.businessHours });
+  }
+  for (const social of settings.socialLinks) {
+    const handle = instagramHandle(social.url);
+    channels.push({
+      key: `social-${social.url}`,
+      icon: handle ? "instagram" : "arrow",
+      label: social.label,
+      value: social.url,
+      node: (
+        <a
+          href={social.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label={`${social.label} da ${settings.name} (abre em nova aba)`}
+          className={linkClass}
+        >
+          {handle ? `@${handle}` : social.label}
+        </a>
+      ),
+    });
   }
 
   if (!channels.length) return null;

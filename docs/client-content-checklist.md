@@ -29,7 +29,8 @@ Ainda pendentes:
 - [ ] CNPJ
 - [ ] WhatsApp comercial (e aprovação do botão flutuante)
 - [ ] Horário de atendimento
-- [ ] Redes sociais oficiais
+- [x] Instagram: https://www.instagram.com/folhatec/ (informado pelo cliente em 27/10/2026)
+- [ ] Demais redes sociais oficiais (LinkedIn, Facebook…)
 - [ ] Licença web da fonte Myriad Pro (hoje: Source Sans 3, equivalente livre)
 
 ## Portfólio → `solution`
@@ -44,6 +45,18 @@ Definir a lista **atual** (o folder antigo não vale como portfólio atual):
 - [ ] Soluções especiais
 - [ ] RFID — ainda é oferecido?
 - [ ] Marcas representadas (e autorização para citá-las)
+
+## Segmentos novos (27/10/2026) → `segment`
+
+Indústria de vidros, Hospitais e laboratórios, Criogenia e Eletroeletrônico
+foram incluídos com textos consultivos, sem especificações. Validar com a
+FolhaTec:
+
+- [ ] Textos das 4 páginas
+- [ ] Criogenia: materiais/adesivos e faixas de temperatura realmente atendidos
+- [ ] Hospitais e laboratórios: aplicações atendidas e eventuais requisitos regulatórios
+- [ ] Vidros: superfícies/processos atendidos (inclui têmpera?)
+- [ ] Eletroeletrônico: materiais e aplicações (placas, componentes, equipamentos)
 
 ## Dados técnicos (por solução) → `technicalOptions`, `applications`
 

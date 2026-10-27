@@ -16,6 +16,8 @@ const DIST_DIR = ".next-prod-check";
 const PORT = 3101;
 const LOCAL = `http://127.0.0.1:${PORT}`;
 const PUBLIC_URL = "https://www.folhatec-verificacao.example";
+/** Perfis oficiais (sameAs) são externos por natureza. */
+const SOCIAL_URLS = ["https://www.instagram.com/folhatec/"];
 
 test.describe.configure({ mode: "serial", timeout: 420_000 });
 
@@ -93,7 +95,7 @@ test("produção com URL pública nunca publica localhost", async () => {
     expect(jsonLd.length).toBeGreaterThan(0);
     for (const block of jsonLd) {
       for (const url of block.match(/https?:\/\/[^"\\]+/g) ?? []) {
-        if (url.startsWith("https://schema.org")) continue;
+        if (url.startsWith("https://schema.org") || SOCIAL_URLS.includes(url)) continue;
         expect(url.startsWith(PUBLIC_URL), `URL no JSON-LD de ${route}: ${url}`).toBe(true);
       }
     }

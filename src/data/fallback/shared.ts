@@ -29,9 +29,9 @@ export const serviceDifferentiators: LabeledValue[] = [
 ];
 
 /**
- * Imagem ilustrativa provisória (gerada por IA, 1536×1024) dos cards de
- * soluções e segmentos — créditos em docs/image-credits.md.
+ * Imagem ilustrativa (gerada por IA e aprovada pelo cliente) dos cards e
+ * páginas de soluções e segmentos — créditos em docs/image-credits.md.
  */
-export function illustration(file: string, alt: string): ContentImage {
-  return { url: `/images/${file}.jpg`, alt, width: 1536, height: 1024, blurDataUrl: null };
+export function illustration(file: string, alt: string, width: number, height: number): ContentImage {
+  return { url: `/images/${file}.jpg`, alt, width, height, blurDataUrl: null };
 }

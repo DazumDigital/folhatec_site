@@ -79,9 +79,12 @@ test.describe("JSON-LD", () => {
       addressLocality: "Jaraguá do Sul",
       addressRegion: "SC",
       postalCode: "89255-380",
+      streetAddress: expect.stringContaining("Galpão 01"),
     });
+    // Instagram oficial informado pelo cliente.
+    expect(organization?.sameAs).toEqual(["https://www.instagram.com/folhatec/"]);
     // Dados ainda não validados não podem aparecer.
-    for (const field of ["taxID", "legalName", "sameAs"]) {
+    for (const field of ["taxID", "legalName"]) {
       expect(organization?.[field], field).toBeUndefined();
     }
   });

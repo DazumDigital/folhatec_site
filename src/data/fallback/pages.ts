@@ -7,7 +7,7 @@ import type { CompanyContent, ContentImage, HomeContent } from "@/types/content"
  */
 const heroImage: ContentImage = {
   url: "/images/hero-impressora-etiquetas.jpg",
-  alt: "Impressora térmica imprimindo etiquetas adesivas em ambiente industrial",
+  alt: "Impressora térmica imprimindo etiquetas com código de barras em ambiente industrial",
   width: 1536,
   height: 1024,
   blurDataUrl: null,
@@ -16,8 +16,8 @@ const heroImage: ContentImage = {
 const applicationsImage: ContentImage = {
   url: "/images/aplicacoes-armazem.jpg",
   alt: "Operador lendo códigos de barras de caixas em um armazém",
-  width: 1920,
-  height: 819,
+  width: 1586,
+  height: 672,
   blurDataUrl: null,
 };
 

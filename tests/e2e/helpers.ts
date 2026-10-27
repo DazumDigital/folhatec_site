@@ -12,7 +12,16 @@ export const STATIC_ROUTES = [
 ] as const;
 
 export const SOLUTION_SLUGS = ["etiquetas", "ribbons", "equipamentos", "solucoes-especiais"] as const;
-export const SEGMENT_SLUGS = ["alimentos", "logistica", "quimico", "industria"] as const;
+export const SEGMENT_SLUGS = [
+  "alimentos",
+  "logistica",
+  "quimico",
+  "industria",
+  "vidros",
+  "hospitais-laboratorios",
+  "criogenia",
+  "eletroeletronico",
+] as const;
 
 export const DETAIL_ROUTES = [
   ...SOLUTION_SLUGS.map((slug) => `/solucoes/${slug}`),

@@ -6,9 +6,9 @@ import type { SiteSettings } from "@/types/content";
  *
  * Contatos (e-mail, telefone, endereço) enviados pela agência em 06/10/2026,
  * idênticos aos publicados hoje em folhatec.com.br. NÃO usar dados do folder
- * antigo (2011). Razão social, CNPJ, WhatsApp, horário e redes sociais
- * continuam pendentes (docs/client-content-checklist.md). Campos `null`
- * ficam ocultos.
+ * antigo (2011). Instagram oficial informado pelo cliente em 27/10/2026.
+ * Razão social, CNPJ, WhatsApp, horário e demais redes continuam pendentes
+ * (docs/client-content-checklist.md). Campos `null` ficam ocultos.
  */
 export const fallbackSiteSettings: SiteSettings = {
   name: "FolhaTec",
@@ -47,6 +47,6 @@ export const fallbackSiteSettings: SiteSettings = {
     },
     businessHours: null,
   },
-  socialLinks: [],
+  socialLinks: [{ label: "Instagram", url: "https://www.instagram.com/folhatec/" }],
   showFloatingWhatsApp: false,
 };
