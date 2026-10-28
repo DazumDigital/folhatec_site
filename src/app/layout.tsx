@@ -9,7 +9,7 @@ import { GtmNoScript, TrackingScripts } from "@/components/tracking/TrackingScri
 import { AttributionCapture } from "@/features/quote/AttributionCapture";
 import { IS_INDEXABLE, SITE_URL } from "@/lib/config/env";
 import { getSiteSettings } from "@/lib/content";
-import { SITE_NAME } from "@/lib/seo/metadata";
+import { DEFAULT_SHARE_IMAGE, SITE_NAME } from "@/lib/seo/metadata";
 import { organizationJsonLd } from "@/lib/seo/json-ld";
 import "./globals.css";
 
@@ -37,6 +37,22 @@ export const metadata: Metadata = {
   description:
     "Soluções em etiquetas e identificação para operações industriais, com conhecimento técnico, atendimento consultivo e compromisso com prazo.",
   applicationName: SITE_NAME,
+  // Padrão para páginas sem metadata própria (ex.: 404). As páginas públicas
+  // definem Open Graph completo via buildMetadata.
+  openGraph: {
+    type: "website",
+    locale: "pt_BR",
+    siteName: SITE_NAME,
+    images: [
+      {
+        url: DEFAULT_SHARE_IMAGE.url,
+        width: DEFAULT_SHARE_IMAGE.width,
+        height: DEFAULT_SHARE_IMAGE.height,
+        alt: DEFAULT_SHARE_IMAGE.alt,
+      },
+    ],
+  },
+  twitter: { card: "summary_large_image" },
   formatDetection: { telephone: false, email: false, address: false },
   // Fora de produção nada é indexável. Em produção, cada página define o
   // próprio robots via buildMetadata (o padrão "index, follow" é implícito).

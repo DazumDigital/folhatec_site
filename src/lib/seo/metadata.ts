@@ -5,6 +5,21 @@ import type { ContentImage, SeoFields } from "@/types/content";
 export const SITE_NAME = "FolhaTec";
 
 /**
+ * Imagem de compartilhamento padrão (WhatsApp, LinkedIn, Facebook, X) para
+ * páginas sem imagem própria. 1200×630 (1,91:1), recortada da foto aprovada
+ * do hero (impressora imprimindo etiquetas). Soluções, segmentos e artigos
+ * continuam usando a própria imagem. URL relativa: o Next a torna absoluta
+ * com o `metadataBase` do layout.
+ */
+export const DEFAULT_SHARE_IMAGE: ContentImage = {
+  url: "/og/folhatec-compartilhamento.jpg",
+  alt: "Impressora térmica imprimindo etiquetas com código de barras — FolhaTec",
+  width: 1200,
+  height: 630,
+  blurDataUrl: null,
+};
+
+/**
  * Metadata da página 404. O Next injeta <meta name="robots" content="noindex">
  * automaticamente; `robots: null` remove o valor herdado do layout para não
  * duplicar a tag. Usada no not-found e nas rotas dinâmicas sem conteúdo.
@@ -38,7 +53,7 @@ export function buildMetadata(input: BuildMetadataInput): Metadata {
   const title = input.seo?.title ?? input.title;
   const description = input.seo?.description ?? input.description;
   const url = absoluteUrl(input.path);
-  const ogImage = input.seo?.ogImage ?? input.image ?? null;
+  const ogImage = input.seo?.ogImage ?? input.image ?? DEFAULT_SHARE_IMAGE;
   const index = IS_INDEXABLE && !input.seo?.noIndex;
 
   return {
@@ -52,15 +67,13 @@ export function buildMetadata(input: BuildMetadataInput): Metadata {
       url,
       title,
       description,
-      ...(ogImage
-        ? { images: [{ url: ogImage.url, width: ogImage.width, height: ogImage.height, alt: ogImage.alt }] }
-        : {}),
+      images: [{ url: ogImage.url, width: ogImage.width, height: ogImage.height, alt: ogImage.alt }],
       ...(input.type === "article" && input.publishedTime
         ? { publishedTime: input.publishedTime, modifiedTime: input.modifiedTime ?? undefined }
         : {}),
     },
     twitter: {
-      card: ogImage ? "summary_large_image" : "summary",
+      card: "summary_large_image",
       title,
       description,
     },

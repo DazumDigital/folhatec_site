@@ -210,6 +210,14 @@ test.describe("API /api/quote", () => {
     expect(await response.json()).toEqual({ ok: true, status: "delivered" });
   });
 
+  test("anti-abuso: envio a partir de outro site é recusado (Origin)", async ({ request, baseURL }) => {
+    const foreign = await request.post("/api/quote", { data: valid, headers: { origin: "https://spam.example" } });
+    expect(foreign.status()).toBe(403);
+    expect(await foreign.json()).toEqual({ ok: false, error: "forbidden_origin" });
+    const sameSite = await request.post("/api/quote", { data: valid, headers: { origin: baseURL ?? "http://localhost:3100" } });
+    expect(sameSite.status()).toBe(202);
+  });
+
   test("apenas POST é aceito", async ({ request }) => {
     const response = await request.get("/api/quote");
     expect(response.status()).toBe(405);

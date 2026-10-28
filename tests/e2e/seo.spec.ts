@@ -40,6 +40,43 @@ test.describe("Metadata por página", () => {
     });
   }
 
+  test("imagem de compartilhamento: padrão nas institucionais, própria em soluções e segmentos", async ({ page, request }) => {
+    const DEFAULT = `${BASE_URL}/og/folhatec-compartilhamento.jpg`;
+    const ogImage = async (route: string) => {
+      await page.goto(route);
+      return {
+        url: await page.locator('meta[property="og:image"]').getAttribute("content"),
+        count: await page.locator('meta[property="og:image"]').count(),
+        width: await page.locator('meta[property="og:image:width"]').getAttribute("content"),
+        height: await page.locator('meta[property="og:image:height"]').getAttribute("content"),
+        alt: await page.locator('meta[property="og:image:alt"]').getAttribute("content"),
+        twitterCard: await page.locator('meta[name="twitter:card"]').getAttribute("content"),
+        twitterImage: await page.locator('meta[name="twitter:image"]').getAttribute("content"),
+      };
+    };
+    for (const route of [...STATIC_ROUTES, "/rota-inexistente"]) {
+      const og = await ogImage(route);
+      expect(og.count, route).toBe(1);
+      expect(og.url, route).toBe(DEFAULT);
+      expect([og.width, og.height], route).toEqual(["1200", "630"]);
+      expect(og.alt?.length ?? 0, route).toBeGreaterThan(10);
+      expect(og.twitterCard, route).toBe("summary_large_image");
+      expect(og.twitterImage, route).toBe(DEFAULT);
+    }
+    for (const route of DETAIL_ROUTES) {
+      const og = await ogImage(route);
+      const slug = route.split("/").pop();
+      expect(og.url, route).toMatch(new RegExp(`^${BASE_URL}/images/(solucao|segmento)-[a-z-]+[.]jpg$`));
+      expect(og.url, route).not.toBe(DEFAULT);
+      expect(og.url?.includes(route.startsWith("/solucoes") ? "solucao-" : `segmento-${slug}`), route).toBe(true);
+      expect(og.twitterCard, route).toBe("summary_large_image");
+    }
+    const file = await request.get("/og/folhatec-compartilhamento.jpg");
+    expect(file.status()).toBe(200);
+    expect(file.headers()["content-type"]).toBe("image/jpeg");
+    expect((await file.body()).byteLength).toBeLessThan(300 * 1024);
+  });
+
   test("titles e descriptions são únicos entre páginas", async ({ page }) => {
     const titles = new Map<string, string>();
     const descriptions = new Map<string, string>();

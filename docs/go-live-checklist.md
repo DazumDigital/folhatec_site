@@ -13,7 +13,10 @@ Critérios de aceite do briefing (seção 28) + pendências técnicas desta base
 
 ## Integrações
 
-- [ ] `QUOTE_WEBHOOK_URL` e `QUOTE_WEBHOOK_SECRET` em Production
+- [ ] Domínio do remetente verificado no Resend (TXT resend._domainkey + CNAME rsend e send na Locaweb)
+- [ ] `RESEND_API_KEY` (secret) e `QUOTE_EMAIL_FROM` em Production; `QUOTE_EMAIL_TO` se diferente de folhatec@folhatec.com.br
+- [ ] Teste real autorizado: e-mail chegou em folhatec@folhatec.com.br (verificar spam) e "Responder" vai para o solicitante
+- [ ] Opcional: `QUOTE_WEBHOOK_URL` e `QUOTE_WEBHOOK_SECRET` (CRM)
 - [ ] Envio real testado ponta a ponta (lead chega com atribuição)
 - [ ] WhatsApp testado em celular (mensagem contextual correta)
 - [ ] Sanity: projeto, dataset, CORS, usuários administrativos com permissões mínimas

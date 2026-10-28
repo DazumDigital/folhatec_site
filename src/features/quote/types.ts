@@ -21,6 +21,7 @@ export type QuoteApiResponse =
         | "invalid_json"
         | "invalid_context"
         | "unsupported_media_type"
+        | "forbidden_origin"
         | "payload_too_large"
         | "rate_limited"
         | "delivery_failed"

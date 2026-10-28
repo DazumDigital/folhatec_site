@@ -20,6 +20,23 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+/**
+ * Anti-abuso: navegadores sempre enviam `Origin` em POST via fetch. Se vier de
+ * outro site, a requisição é recusada (formulário só aceita envios do próprio
+ * domínio). Sem `Origin` (ex.: clientes de servidor) segue para as demais
+ * proteções — honeypot, validação e limites.
+ */
+function isCrossOrigin(request: NextRequest): boolean {
+  const origin = request.headers.get("origin");
+  if (!origin) return false;
+  const host = request.headers.get("x-forwarded-host") ?? request.headers.get("host");
+  try {
+    return new URL(origin).host !== host;
+  } catch {
+    return true;
+  }
+}
+
 /** Identificador não pessoal para rate limit (hash do IP, nunca logado). */
 function clientKey(request: NextRequest): string {
   const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
@@ -27,6 +44,10 @@ function clientKey(request: NextRequest): string {
 }
 
 export async function POST(request: NextRequest) {
+  if (isCrossOrigin(request)) {
+    return reply({ ok: false, error: "forbidden_origin" }, 403);
+  }
+
   const contentType = request.headers.get("content-type") ?? "";
   if (!contentType.toLowerCase().startsWith("application/json")) {
     return reply({ ok: false, error: "unsupported_media_type" }, 415);
@@ -91,7 +112,10 @@ export async function POST(request: NextRequest) {
   }
 
   const lead = buildLead(data, sanitizeAttribution(body.attribution));
-  const result = await deliverQuote(lead);
+  const result = await deliverQuote(lead, {
+    solution: solutions.find((item) => item.slug === data.solution)?.title ?? null,
+    segment: segments.find((item) => item.slug === data.segment)?.title ?? null,
+  });
 
   switch (result.status) {
     case "delivered":

@@ -108,7 +108,10 @@ Copie `.env.example` para `.env.local`. Resumo:
 | `NEXT_PUBLIC_GA4_ID`                  | GA4 direto, somente sem GTM                           |
 | `NEXT_PUBLIC_SANITY_*`                | Projeto, dataset e versão da API                      |
 | `SANITY_API_TOKEN`                    | Opcional, somente leitura (dataset privado)           |
-| `QUOTE_WEBHOOK_URL`                   | Destino dos leads (server-side)                       |
+| `RESEND_API_KEY`                      | Envio das cotações por e-mail (Resend, server-side, secret) |
+| `QUOTE_EMAIL_FROM`                    | Remetente autenticado (domínio verificado no Resend)   |
+| `QUOTE_EMAIL_TO`                      | Destinatário (padrão `folhatec@folhatec.com.br`)       |
+| `QUOTE_WEBHOOK_URL`                   | Webhook opcional de leads (CRM/automação)             |
 | `QUOTE_WEBHOOK_SECRET`                | Assinatura HMAC SHA-256 do corpo                      |
 
 Somente `NEXT_PUBLIC_SITE_ENV=production` permite indexação — e nunca em

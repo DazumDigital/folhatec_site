@@ -40,6 +40,14 @@ continua no pacote aprovado.
 papel mais branco e neutro, impressão (texto, barras e QR code) mais preta e
 nítida. O restante da foto e as dimensões (1536×1024) não mudaram.
 
+## Imagem de compartilhamento (Open Graph)
+
+`public/og/folhatec-compartilhamento.jpg` — 1200×630 (1,91:1), ~110 KB,
+recorte da imagem 10 tratada (`hero-impressora-etiquetas.jpg`). Usada como
+`og:image`/`twitter:image` padrão nas páginas sem imagem própria (Home,
+Empresa, Soluções, Segmentos, Conteúdos, Contato, Cotação, Privacidade, 404).
+Soluções e segmentos mantêm a própria imagem.
+
 ## Banco gratuito
 
 [Unsplash License](https://unsplash.com/license): uso comercial permitido, sem
