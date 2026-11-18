@@ -2,7 +2,7 @@
 
 ## Ambientes
 
-| Ambiente    | `NEXT_PUBLIC_SITE_ENV` | Indexação | Sem canal de entrega (e-mail/webhook) |
+| Ambiente    | `NEXT_PUBLIC_SITE_ENV` | Indexação | Sem canal de entrega (SMTP/webhook) |
 | ----------- | ---------------------- | --------- | ---------------------- |
 | Local       | `development`          | noindex   | stub (nada enviado)    |
 | Staging     | `staging`              | noindex   | stub                   |
@@ -13,62 +13,79 @@ Em produção, `NEXT_PUBLIC_SITE_URL` é obrigatória (https, não local). Sem e
 build falha — verificado por `tests/e2e/production.spec.ts`, que faz um build
 real em `.next-prod-check` (via `NEXT_DIST_DIR`).
 
-## Envio das cotações por e-mail (Resend)
+## Envio das cotações por e-mail (SMTP Locaweb)
 
-Canal principal de entrega (`src/features/quote/server/email.ts`), chamado
-pela rota `POST /api/quote` depois de todas as validações.
+Canal principal de entrega (`src/features/quote/server/email.ts`, Nodemailer),
+chamado pela rota `POST /api/quote` (runtime Node.js) depois de todas as
+validações. Usa a conta do E-mail Locaweb já contratada pela FolhaTec.
 
-| Variável | Tipo | Valor |
+| Variável | Tipo | Valor (Production) |
 | --- | --- | --- |
-| `RESEND_API_KEY` | secret (server) | chave da API do Resend, permissão "Sending access" |
-| `QUOTE_EMAIL_FROM` | config | remetente num domínio verificado, ex. `Site FolhaTec <site@folhatec.com.br>` |
-| `QUOTE_EMAIL_TO` | config (opcional) | padrão `folhatec@folhatec.com.br` |
+| `SMTP_HOST` | config | `email-ssl.com.br` |
+| `SMTP_PORT` | config | `465` |
+| `SMTP_SECURE` | config | `true` (SSL/TLS direto) |
+| `SMTP_USER` | config | `folhatec@folhatec.com.br` |
+| `SMTP_PASSWORD` | **secret** | senha atual da caixa — cadastrar só na Vercel |
+| `QUOTE_EMAIL_FROM` | config | `FolhaTec - Site <folhatec@folhatec.com.br>` |
+| `QUOTE_EMAIL_TO` | config | `folhatec@folhatec.com.br` |
+| `QUOTE_ALLOWED_HOSTS` | config (opcional) | padrão: domínio de `NEXT_PUBLIC_SITE_URL` (+ www/sem www) |
 
-- Mensagem: assunto `Nova solicitação de cotação | FolhaTec`, HTML + texto,
-  só com os campos preenchidos (nome, empresa, e-mail, telefone, solução,
-  segmento, mensagem, data/hora de Brasília, página de envio, entrada no
-  site, referrer, campanha, consentimento).
-- `Reply-To` = e-mail do solicitante; o remetente é sempre o domínio
-  verificado (o e-mail do visitante nunca é usado como remetente).
-- Sucesso (`form_success`) só após o Resend aceitar a mensagem (HTTP 200).
-  Recusa, 5xx, timeout (8 s) ou rede → HTTP 502 e mensagem de erro no site.
-  Aceite do provedor ≠ entrega na caixa de entrada (confirmar no teste real).
-- `Idempotency-Key` por conteúdo + minuto: reenvio idêntico não duplica.
-- Logs: apenas status HTTP e tipo de erro do provedor; sem dados pessoais.
+- Mensagem: assunto `Nova solicitação de cotação | Site FolhaTec`, HTML +
+  texto, só com os campos preenchidos (nome, empresa, e-mail, telefone,
+  solução, segmento, mensagem, data/hora de Brasília, página de envio, entrada
+  no site, referrer, campanha, consentimento). Conteúdo do visitante escapado.
+- `From` = `FolhaTec - Site <folhatec@folhatec.com.br>` (sempre o endereço
+  autenticado — configuração com outro endereço é rejeitada); `Reply-To` =
+  e-mail do solicitante. O e-mail do visitante nunca é remetente.
+- Sucesso ("Solicitação enviada com sucesso!" + `form_success`) só quando o
+  servidor SMTP aceita o destinatário. Falha de autenticação, conexão,
+  timeout, recusa → HTTP 502 e mensagem de erro com telefone/e-mail
+  alternativos. Aceite SMTP ≠ entrega na caixa (confirmar no teste real).
+- Timeouts: conexão 8 s, saudação 8 s, inatividade 12 s, teto total 20 s
+  (padrões do Nodemailer seriam de minutos). `maxDuration` da rota: 30 s.
+- Duplicidade: trava no navegador + memória por instância (envio idêntico no
+  mesmo minuto é entregue uma vez) + `Message-ID` estável por conteúdo.
+- Logs: apenas o tipo/código do erro SMTP; sem dados pessoais nem senha.
 - Webhook (abaixo) pode coexistir: o e-mail decide o resultado; falha do
-  webhook só é registrada.
+  webhook só é registrada. Sem necessidade, deixe `QUOTE_WEBHOOK_URL` vazio.
 
-### Domínio do remetente (DNS)
+### Hosts autorizados
 
-O Resend só envia para terceiros a partir de um domínio verificado. O DNS de
-`folhatec.com.br` está na Locaweb (e-mail também na Locaweb; SPF
-`include:_spf.locaweb.com.br`; DMARC `p=none`). Domínio cadastrado no Resend
-(conta `dazumdigital`, região São Paulo, envio ativo, recebimento desativado).
-A verificação adiciona três registros **novos** — nenhum desses nomes existe
-hoje no DNS e o MX/SPF do domínio raiz não mudam:
+O deploy de produção responde em `www.folhatec.com.br`, `folhatec.com.br`
+(308 → www) e `folhatec-v3.vercel.app`. O envio real só ocorre nos hosts
+autorizados — por padrão o host de `NEXT_PUBLIC_SITE_URL` e sua variante
+com/sem `www`. Em outro host a API responde `stub` e o site informa
+"Solicitação não enviada" com os canais alternativos. **Por isso
+`NEXT_PUBLIC_SITE_URL` precisa ser `https://www.folhatec.com.br`** (ou definir
+`QUOTE_ALLOWED_HOSTS=www.folhatec.com.br,folhatec.com.br`).
 
-| Tipo | Nome (host) | Finalidade |
+### Comportamento por configuração
+
+| Situação | API | O que o visitante vê |
 | --- | --- | --- |
-| TXT | `resend._domainkey` | DKIM — assinatura que autentica os e-mails como `folhatec.com.br` |
-| CNAME | `rsend` | Envio (SPF/retorno) delegado ao Resend |
-| CNAME | `send` | Envio (SPF/retorno) delegado ao Resend |
+| SMTP ok + host autorizado | 200 `delivered` | "Solicitação enviada com sucesso! Nossa equipe entrará em contato." |
+| Falha SMTP (senha, conexão, timeout, recusa) | 502 | "Não foi possível enviar…" + telefone/e-mail |
+| Configuração parcial/inválida | 503 | "Não foi possível enviar…" + telefone/e-mail |
+| Sem canal em production | 503 | "Não foi possível enviar…" + telefone/e-mail |
+| Sem canal em dev/staging, ou host não autorizado | 202 `stub` | "Solicitação não enviada." + telefone/e-mail |
 
-Valores: copiar pelo botão de cópia do painel (Domains → folhatec.com.br),
-exatamente como exibidos; TTL padrão/Auto. Sem proxy em CNAME.
+### Compatibilidade Vercel × Locaweb
 
-### Configuração inválida
-
-Se `RESEND_API_KEY`/`QUOTE_EMAIL_FROM` (ou `QUOTE_WEBHOOK_URL` sem e-mail)
-estiverem presentes mas incompletos/inválidos, a API responde 503 em qualquer
-ambiente e o site mostra erro — nunca o stub silencioso de homologação.
+- Nodemailer roda em Node.js (rota com `runtime = "nodejs"`); SMTP de saída
+  na porta 465 é permitido nas funções da Vercel.
+- As funções rodam hoje na região `iad1` (EUA). Se a Locaweb bloquear ou
+  alertar logins SMTP vindos do exterior, avaliar a região `gru1` (São Paulo)
+  para a função — só após o teste real.
+- SPF da Locaweb (`include:_spf.locaweb.com.br`) já cobre o envio pela
+  própria Locaweb: nenhum registro DNS novo é necessário.
 
 ### Anti-abuso
 
 Honeypot (`website`), validação server-side, JSON-only, limite de 16 KB,
-contexto validado, recusa de `Origin` de outro site (HTTP 403) e
-idempotência no envio. Rate limit persistente continua pendente
-(`rate-limit.ts`): recomendado antes de campanhas, pois o plano gratuito do
-Resend tem cota diária.
+contexto validado, recusa de `Origin` de outro site (403), hosts autorizados
+e rate limit em memória quando há canal real (5 envios por IP e 30 por
+instância a cada 10 min; melhor esforço por instância serverless — para
+garantia global, provider persistente em `rate-limit.ts`).
 
 ## Webhook de cotação (opcional)
 

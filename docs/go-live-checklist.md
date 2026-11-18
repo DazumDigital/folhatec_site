@@ -13,8 +13,9 @@ Critérios de aceite do briefing (seção 28) + pendências técnicas desta base
 
 ## Integrações
 
-- [ ] Domínio do remetente verificado no Resend (TXT resend._domainkey + CNAME rsend e send na Locaweb)
-- [ ] `RESEND_API_KEY` (secret) e `QUOTE_EMAIL_FROM` em Production; `QUOTE_EMAIL_TO` se diferente de folhatec@folhatec.com.br
+- [ ] SMTP Locaweb em Production: `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASSWORD` (Sensitive), `QUOTE_EMAIL_FROM`, `QUOTE_EMAIL_TO`
+- [ ] `NEXT_PUBLIC_SITE_URL=https://www.folhatec.com.br` (canonical/sitemap e hosts autorizados para envio)
+- [ ] `QUOTE_WEBHOOK_URL` ausente (ou intencional — evita envios duplicados)
 - [ ] Teste real autorizado: e-mail chegou em folhatec@folhatec.com.br (verificar spam) e "Responder" vai para o solicitante
 - [ ] Opcional: `QUOTE_WEBHOOK_URL` e `QUOTE_WEBHOOK_SECRET` (CRM)
 - [ ] Envio real testado ponta a ponta (lead chega com atribuição)

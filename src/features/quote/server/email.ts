@@ -1,23 +1,30 @@
 import { createHash } from "node:crypto";
+import { createTransport } from "nodemailer";
 import type { QuoteLead } from "./deliver";
 
 /**
- * Envio da solicitação de cotação por e-mail via Resend (API HTTP, sem SDK).
- * https://resend.com/docs/api-reference/emails/send-email
+ * Envio da solicitação de cotação por e-mail via SMTP autenticado
+ * (E-mail Locaweb: email-ssl.com.br, porta 465, SSL/TLS).
  *
- * - Credencial só no servidor (RESEND_API_KEY); nunca exposta ao navegador.
- * - Remetente autenticado = QUOTE_EMAIL_FROM (domínio verificado no Resend);
- *   o e-mail do visitante vai apenas em `reply_to`.
- * - `Idempotency-Key` estável por conteúdo + minuto: reenvios idênticos
- *   (duplo clique, retry de rede) não geram e-mails duplicados.
- * - Logs sem dados pessoais: apenas status HTTP e tipo de erro do provedor.
+ * - Credenciais só no servidor (SMTP_PASSWORD como secret na Vercel); nunca
+ *   expostas ao navegador, a logs ou a respostas da API.
+ * - Remetente autenticado = SMTP_USER (o "From" precisa ser o mesmo
+ *   endereço); o e-mail do visitante vai apenas em Reply-To.
+ * - Timeouts curtos e explícitos: a função serverless nunca fica presa.
+ * - Message-ID estável por conteúdo + minuto, para que clientes/servidores de
+ *   e-mail reconheçam reenvios idênticos.
+ * - Logs sem dados pessoais: apenas código do erro SMTP.
  */
 
-export const RESEND_API_URL = "https://api.resend.com/emails";
 /** Destinatário comercial das solicitações (pode ser sobrescrito por QUOTE_EMAIL_TO). */
 export const DEFAULT_QUOTE_RECIPIENT = "folhatec@folhatec.com.br";
-export const QUOTE_EMAIL_SUBJECT = "Nova solicitação de cotação | FolhaTec";
-export const EMAIL_TIMEOUT_MS = 8000;
+export const QUOTE_EMAIL_SUBJECT = "Nova solicitação de cotação | Site FolhaTec";
+export const DEFAULT_SENDER_NAME = "FolhaTec - Site";
+
+/** Timeouts SMTP (ms). Os padrões do Nodemailer (2 a 10 min) são longos demais para serverless. */
+export const SMTP_TIMEOUTS = { connectionTimeout: 8000, greetingTimeout: 8000, socketTimeout: 12000 } as const;
+/** Teto total do envio, independente das fases acima. */
+export const SMTP_SEND_DEADLINE_MS = 20000;
 
 /** Variáveis de ambiente (process.env ou um objeto equivalente nos testes). */
 export type EnvVars = Readonly<Record<string, string | undefined>>;
@@ -31,8 +38,13 @@ export type EnvVars = Readonly<Record<string, string | undefined>>;
  */
 export type ChannelConfig<T> = { state: "absent" } | { state: "invalid" } | { state: "ready"; config: T };
 
-export interface EmailConfig {
-  apiKey: string;
+export interface SmtpConfig {
+  host: string;
+  port: number;
+  secure: boolean;
+  user: string;
+  password: string;
+  /** "Nome <endereço>" — o endereço é sempre o SMTP_USER. */
   from: string;
   to: string;
 }
@@ -45,40 +57,73 @@ export interface QuoteContextLabels {
 
 export interface QuoteEmail {
   from: string;
-  to: string[];
-  reply_to: string;
+  to: string;
+  replyTo: string;
   subject: string;
   html: string;
   text: string;
+  messageId: string;
 }
 
+export type SmtpFailureReason = "auth" | "timeout" | "network_error" | "rejected" | "unknown";
+
 export type EmailSendResult =
-  | { status: "delivered"; id: string | null }
-  | { status: "failed"; reason: "timeout" | "http_error" | "network_error"; httpStatus?: number };
+  | { status: "delivered"; messageId: string }
+  | { status: "failed"; reason: SmtpFailureReason; code?: string; responseCode?: number };
 
-const ADDRESS = /^[^\s@<>]+@[^\s@<>.]+(\.[^\s@<>.]+)+$/;
-const NAMED_ADDRESS = /^[^<>\r\n]{1,80}<([^\s@<>]+@[^\s@<>.]+(\.[^\s@<>.]+)+)>$/;
+const ADDRESS = /^[^\s@<>"]+@[^\s@<>.]+(\.[^\s@<>.]+)+$/;
+const NAMED_ADDRESS = /^([^<>"\r\n]{1,80})<([^\s@<>"]+@[^\s@<>.]+(\.[^\s@<>.]+)+)>$/;
+const HOSTNAME = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/i;
 
-/** Aceita "email@dominio" ou "Nome <email@dominio>". */
-export function isValidSender(value: string): boolean {
-  return ADDRESS.test(value) || NAMED_ADDRESS.test(value);
+/** Endereço contido em "email@dominio" ou "Nome <email@dominio>"; null se inválido. */
+export function senderAddress(value: string): string | null {
+  if (ADDRESS.test(value)) return value.toLowerCase();
+  const named = NAMED_ADDRESS.exec(value);
+  return named?.[2] ? named[2].toLowerCase() : null;
+}
+
+function parseBoolean(value: string | undefined): boolean | null {
+  if (value === undefined || value.trim() === "") return null;
+  const normalized = value.trim().toLowerCase();
+  if (["true", "1", "yes"].includes(normalized)) return true;
+  if (["false", "0", "no"].includes(normalized)) return false;
+  return null;
 }
 
 /**
- * Configuração do e-mail a partir do ambiente. Sem RESEND_API_KEY e sem
- * QUOTE_EMAIL_FROM → `absent`. Qualquer configuração parcial ou inválida →
- * `invalid` (registrado em log, sem valores).
+ * Configuração SMTP a partir do ambiente.
+ * - `absent`: nenhuma de SMTP_HOST / SMTP_USER / SMTP_PASSWORD definida
+ *   (QUOTE_EMAIL_FROM/TO sozinhos não ativam o envio).
+ * - `invalid`: qualquer configuração parcial ou inconsistente — inclusive
+ *   "From" com endereço diferente do usuário autenticado.
+ * Nenhum valor é registrado em log.
  */
-export function readEmailConfig(env: EnvVars = process.env): ChannelConfig<EmailConfig> {
-  const apiKey = env.RESEND_API_KEY?.trim() ?? "";
-  const from = env.QUOTE_EMAIL_FROM?.trim() ?? "";
-  const to = env.QUOTE_EMAIL_TO?.trim() || DEFAULT_QUOTE_RECIPIENT;
-  if (!apiKey && !from) return { state: "absent" };
-  if (!apiKey || !isValidSender(from) || !ADDRESS.test(to)) {
-    console.error("[quote] Configuração de e-mail incompleta ou inválida (RESEND_API_KEY / QUOTE_EMAIL_FROM / QUOTE_EMAIL_TO).");
+export function readSmtpConfig(env: EnvVars = process.env): ChannelConfig<SmtpConfig> {
+  const host = env.SMTP_HOST?.trim() ?? "";
+  const user = env.SMTP_USER?.trim().toLowerCase() ?? "";
+  const password = env.SMTP_PASSWORD ?? "";
+  if (!host && !user && !password) return { state: "absent" };
+
+  const port = Number(env.SMTP_PORT?.trim() || "465");
+  const secureRaw = env.SMTP_SECURE;
+  const secure = parseBoolean(secureRaw) ?? port === 465;
+  const from = env.QUOTE_EMAIL_FROM?.trim() || `${DEFAULT_SENDER_NAME} <${user}>`;
+  const to = (env.QUOTE_EMAIL_TO?.trim() || DEFAULT_QUOTE_RECIPIENT).toLowerCase();
+
+  const problems = [
+    !HOSTNAME.test(host) && "SMTP_HOST",
+    !ADDRESS.test(user) && "SMTP_USER",
+    !password && "SMTP_PASSWORD",
+    !(Number.isInteger(port) && port > 0 && port < 65536) && "SMTP_PORT",
+    secureRaw !== undefined && secureRaw.trim() !== "" && parseBoolean(secureRaw) === null && "SMTP_SECURE",
+    senderAddress(from) !== user && "QUOTE_EMAIL_FROM (deve usar o endereço do SMTP_USER)",
+    !ADDRESS.test(to) && "QUOTE_EMAIL_TO",
+  ].filter(Boolean);
+  if (problems.length) {
+    console.error(`[quote] Configuração SMTP incompleta ou inválida: ${problems.join(", ")}.`);
     return { state: "invalid" };
   }
-  return { state: "ready", config: { apiKey, from, to } };
+  return { state: "ready", config: { host, port, secure, user, password, from, to } };
 }
 
 function escapeHtml(value: string): string {
@@ -169,9 +214,20 @@ function textSection(title: string, rows: Array<[string, string]>): string {
   return `${title.toUpperCase()}\n${rows.map(([label, value]) => `${label}: ${value}`).join("\n")}`;
 }
 
-export function buildQuoteEmail(lead: QuoteLead, labels: QuoteContextLabels, config: Pick<EmailConfig, "from" | "to">): QuoteEmail {
+/**
+ * Impressão digital da solicitação: mesmo conteúdo no mesmo minuto → mesma
+ * chave. Usada no Message-ID e na proteção contra duplicidade.
+ */
+export function quoteFingerprint(lead: QuoteLead): string {
+  const minute = lead.submitted_at.slice(0, 16);
+  const fingerprint = JSON.stringify([lead.contact, lead.message, lead.context, minute]);
+  return createHash("sha256").update(fingerprint).digest("hex").slice(0, 40);
+}
+
+export function buildQuoteEmail(lead: QuoteLead, labels: QuoteContextLabels, config: Pick<SmtpConfig, "from" | "to" | "user">): QuoteEmail {
   const { contact, request, origin } = quoteEmailRows(lead, labels);
-  const intro = "Nova solicitação de cotação enviada pelo site da FolhaTec. Responda este e-mail para falar diretamente com o solicitante.";
+  const intro = "Nova solicitação de cotação enviada pelo site da FolhaTec. Use “Responder” para falar diretamente com o solicitante.";
+  const domain = config.user.split("@")[1] ?? "folhatec.com.br";
 
   const html =
     `<!doctype html><html lang="pt-BR"><body style="margin:0;padding:24px;background:#f5f5f5;font-family:Arial,Helvetica,sans-serif">` +
@@ -189,64 +245,98 @@ export function buildQuoteEmail(lead: QuoteLead, labels: QuoteContextLabels, con
 
   return {
     from: config.from,
-    to: [config.to],
-    reply_to: lead.contact.email,
+    to: config.to,
+    replyTo: lead.contact.email,
     subject: QUOTE_EMAIL_SUBJECT,
     html,
     text,
+    messageId: `<cotacao-${quoteFingerprint(lead)}@${domain}>`,
   };
 }
 
-/**
- * Chave de idempotência: mesmo conteúdo no mesmo minuto → mesma chave.
- * O corpo do e-mail também tem precisão de minuto, então um reenvio idêntico
- * é reconhecido pelo Resend e não gera segundo e-mail.
- */
-export function quoteIdempotencyKey(lead: QuoteLead): string {
-  const minute = lead.submitted_at.slice(0, 16);
-  const fingerprint = JSON.stringify([lead.contact, lead.message, lead.context, minute]);
-  return `folhatec-quote-${createHash("sha256").update(fingerprint).digest("hex").slice(0, 40)}`;
+/** Classifica erros do Nodemailer/SMTP sem expor mensagens (que podem conter endereços). */
+export function classifySmtpError(error: unknown): { reason: SmtpFailureReason; code?: string; responseCode?: number } {
+  const err = (error ?? {}) as { code?: unknown; responseCode?: unknown; name?: unknown };
+  const code = typeof err.code === "string" ? err.code : undefined;
+  const responseCode = typeof err.responseCode === "number" ? err.responseCode : undefined;
+  let reason: SmtpFailureReason = "unknown";
+  if (code === "EAUTH" || responseCode === 535 || responseCode === 534) reason = "auth";
+  else if (code === "ETIMEDOUT" || err.name === "SmtpDeadline") reason = "timeout";
+  else if (code && ["ECONNECTION", "ESOCKET", "EDNS", "ETLS", "ECONNREFUSED", "ECONNRESET", "ENOTFOUND", "EHOSTUNREACH"].includes(code)) {
+    reason = "network_error";
+  } else if (code === "EENVELOPE" || code === "EMESSAGE" || (responseCode !== undefined && responseCode >= 400)) reason = "rejected";
+  return { reason, ...(code ? { code } : {}), ...(responseCode !== undefined ? { responseCode } : {}) };
 }
 
-/** Envia o e-mail; `fetchImpl` permite testar respostas do provedor sem rede. */
+/** Opções de transporte só para testes (ex.: servidor SMTP simulado sem TLS). */
+export interface SmtpTestOverrides {
+  ignoreTLS?: boolean;
+  requireTLS?: boolean;
+  connectionTimeout?: number;
+  greetingTimeout?: number;
+  socketTimeout?: number;
+  deadlineMs?: number;
+}
+
+/** Envia o e-mail e só retorna `delivered` quando o servidor SMTP aceita o destinatário. */
 export async function sendQuoteEmail(
   lead: QuoteLead,
   labels: QuoteContextLabels,
-  config: EmailConfig,
-  fetchImpl: typeof fetch = fetch,
+  config: SmtpConfig,
+  overrides: SmtpTestOverrides = {},
 ): Promise<EmailSendResult> {
   const email = buildQuoteEmail(lead, labels, config);
+  const transport = createTransport({
+    host: config.host,
+    port: config.port,
+    secure: config.secure,
+    // Sem SSL direto (ex.: porta 587), exige STARTTLS — nunca autentica em texto puro.
+    requireTLS: overrides.requireTLS ?? !config.secure,
+    ignoreTLS: overrides.ignoreTLS ?? false,
+    auth: { user: config.user, pass: config.password },
+    tls: { servername: config.host, minVersion: "TLSv1.2" },
+    connectionTimeout: overrides.connectionTimeout ?? SMTP_TIMEOUTS.connectionTimeout,
+    greetingTimeout: overrides.greetingTimeout ?? SMTP_TIMEOUTS.greetingTimeout,
+    socketTimeout: overrides.socketTimeout ?? SMTP_TIMEOUTS.socketTimeout,
+    disableFileAccess: true,
+    disableUrlAccess: true,
+  });
+
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const deadline = new Promise<never>((_, reject) => {
+    timer = setTimeout(
+      () => reject(Object.assign(new Error("SMTP deadline"), { name: "SmtpDeadline" })),
+      overrides.deadlineMs ?? SMTP_SEND_DEADLINE_MS,
+    );
+  });
+
   try {
-    const response = await fetchImpl(RESEND_API_URL, {
-      method: "POST",
-      headers: {
-        authorization: `Bearer ${config.apiKey}`,
-        "content-type": "application/json",
-        "idempotency-key": quoteIdempotencyKey(lead),
-        "user-agent": "folhatec-site/quote-email",
-      },
-      body: JSON.stringify(email),
-      cache: "no-store",
-      signal: AbortSignal.timeout(EMAIL_TIMEOUT_MS),
-    });
-    if (!response.ok) {
-      // Apenas o tipo do erro (ex.: validation_error) — a mensagem pode conter endereços.
-      const errorName = await response
-        .json()
-        .then((body: unknown) => (body && typeof body === "object" && "name" in body ? String((body as { name: unknown }).name) : "desconhecido"))
-        .catch(() => "desconhecido");
-      console.error(`[quote] Resend recusou o envio: HTTP ${response.status} (${errorName.slice(0, 60)}).`);
-      return { status: "failed", reason: "http_error", httpStatus: response.status };
+    const info = await Promise.race([
+      transport.sendMail({
+        from: email.from,
+        to: email.to,
+        replyTo: email.replyTo,
+        subject: email.subject,
+        html: email.html,
+        text: email.text,
+        messageId: email.messageId,
+      }),
+      deadline,
+    ]);
+    const accepted = info.accepted.map((address) => String(address).toLowerCase());
+    if (!accepted.includes(config.to) || info.rejected.length > 0) {
+      console.error("[quote] SMTP não aceitou o destinatário da solicitação.");
+      return { status: "failed", reason: "rejected" };
     }
-    const id = await response
-      .json()
-      .then((body: unknown) => (body && typeof body === "object" && "id" in body ? String((body as { id: unknown }).id) : null))
-      .catch(() => null);
-    console.info(`[quote] E-mail aceito pelo Resend${id ? ` (id ${id})` : ""}.`);
-    return { status: "delivered", id };
+    console.info("[quote] E-mail aceito pelo servidor SMTP.");
+    return { status: "delivered", messageId: email.messageId };
   } catch (error) {
-    const timedOut = error instanceof DOMException && error.name === "TimeoutError";
-    console.error(`[quote] Falha ao chamar o Resend (${timedOut ? "timeout" : "erro de rede"}).`);
-    return { status: "failed", reason: timedOut ? "timeout" : "network_error" };
+    const failure = classifySmtpError(error);
+    const detail = [failure.code, failure.responseCode].filter(Boolean).join(" ");
+    console.error(`[quote] Falha no envio SMTP: ${failure.reason}${detail ? ` (${detail})` : ""}.`);
+    return { status: "failed", ...failure };
+  } finally {
+    if (timer) clearTimeout(timer);
+    transport.close();
   }
 }

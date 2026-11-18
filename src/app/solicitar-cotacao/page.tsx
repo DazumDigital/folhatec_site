@@ -91,6 +91,7 @@ export default async function QuotePage({ searchParams }: Props) {
               location="quote_page"
               solution={solution ? { slug: solution.slug, title: solution.title } : null}
               segment={segment ? { slug: segment.slug, title: segment.title } : null}
+              fallbackContact={{ phone: settings.contact.phone, email: settings.contact.email }}
             />
           </div>
         </div>

@@ -108,9 +108,12 @@ Copie `.env.example` para `.env.local`. Resumo:
 | `NEXT_PUBLIC_GA4_ID`                  | GA4 direto, somente sem GTM                           |
 | `NEXT_PUBLIC_SANITY_*`                | Projeto, dataset e versão da API                      |
 | `SANITY_API_TOKEN`                    | Opcional, somente leitura (dataset privado)           |
-| `RESEND_API_KEY`                      | Envio das cotações por e-mail (Resend, server-side, secret) |
-| `QUOTE_EMAIL_FROM`                    | Remetente autenticado (domínio verificado no Resend)   |
+| `SMTP_HOST` / `SMTP_PORT` / `SMTP_SECURE` | SMTP do E-mail Locaweb (`email-ssl.com.br`, 465, SSL) |
+| `SMTP_USER`                           | Conta autenticada e remetente (`folhatec@folhatec.com.br`) |
+| `SMTP_PASSWORD`                       | **Secret** (somente Vercel), senha da conta SMTP       |
+| `QUOTE_EMAIL_FROM`                    | Opcional; padrão `FolhaTec - Site <SMTP_USER>`         |
 | `QUOTE_EMAIL_TO`                      | Destinatário (padrão `folhatec@folhatec.com.br`)       |
+| `QUOTE_ALLOWED_HOSTS`                 | Opcional; hosts com envio real (padrão: domínio de `NEXT_PUBLIC_SITE_URL`) |
 | `QUOTE_WEBHOOK_URL`                   | Webhook opcional de leads (CRM/automação)             |
 | `QUOTE_WEBHOOK_SECRET`                | Assinatura HMAC SHA-256 do corpo                      |
 
@@ -119,21 +122,25 @@ Preview da Vercel (`VERCEL_ENV=preview`). Em production, `NEXT_PUBLIC_SITE_URL`
 ausente, inválida, sem https ou local (localhost, 127.0.0.1…) **faz o build
 falhar** — canonical, sitemap, OG e JSON-LD nunca apontam para localhost.
 
-## Cotação e webhook
+## Cotação (e-mail via SMTP Locaweb)
 
-`POST /api/quote` valida tudo no servidor (tipo e tamanho do corpo, campos,
-e-mail, telefone, consentimento, solução/segmento existentes, honeypot) e
-entrega o lead ao webhook com timeout de 8 s.
+`POST /api/quote` valida tudo no servidor (origem, tipo e tamanho do corpo,
+campos, e-mail, telefone, consentimento, solução/segmento existentes,
+honeypot, limite de requisições) e envia a solicitação por e-mail para
+`folhatec@folhatec.com.br` pelo SMTP autenticado da Locaweb (Reply-To =
+solicitante). Webhook opcional pode coexistir.
 
-| Situação                          | Resposta                         | `form_success`? |
-| --------------------------------- | -------------------------------- | --------------- |
-| Webhook confirmou                 | 200 `delivered`                  | sim             |
-| Sem webhook (dev/staging)         | 202 `stub` — nada é enviado      | **não**         |
-| Sem webhook em produção           | 503 `delivery_not_configured`    | não             |
-| Webhook falhou / timeout          | 502 `delivery_failed`            | não             |
-| Honeypot preenchido               | 200 (idêntico), sem entrega      | —               |
+| Situação                                      | Resposta                         | `form_success`? |
+| --------------------------------------------- | -------------------------------- | --------------- |
+| SMTP aceitou a mensagem                       | 200 `delivered`                  | sim             |
+| Sem canal (dev/staging) ou host não autorizado | 202 `stub` — nada é enviado (site avisa) | **não** |
+| Sem canal em produção / configuração inválida | 503 `delivery_not_configured`    | não             |
+| Falha SMTP (senha, conexão, timeout, recusa)  | 502 `delivery_failed`            | não             |
+| Origem de outro site                          | 403 `forbidden_origin`           | não             |
+| Honeypot preenchido                           | 200 (idêntico), sem entrega      | —               |
 
-Contrato do payload: [`docs/infrastructure.md`](docs/infrastructure.md).
+Variáveis, hosts autorizados e compatibilidade Vercel × Locaweb:
+[`docs/infrastructure.md`](docs/infrastructure.md).
 
 ## Tracking
 

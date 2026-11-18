@@ -2,10 +2,12 @@
 
 import Link from "next/link";
 import { useRef, useState, type FormEvent } from "react";
+import { TrackedLink } from "@/components/tracking/TrackedLink";
 import { buttonClassName } from "@/components/ui/button-styles";
 import { Icon } from "@/components/ui/Icon";
 import { trackEvent } from "@/lib/analytics/events";
 import { cn } from "@/lib/cn";
+import { buildEmailHref, buildPhoneHref } from "@/lib/contact";
 import { getAttributionPayload } from "./attribution-client";
 import type { QuoteApiResponse, QuoteContextOption } from "./types";
 import { QUOTE_LIMITS, validateQuote, type QuoteErrors, type QuoteField } from "./validation";
@@ -21,15 +23,55 @@ function fieldClass(hasError: boolean) {
   return cn(inputClass, hasError ? "border-error" : "border-line-strong");
 }
 
+/** Canais alternativos exibidos quando a solicitação não pôde ser enviada. */
+export interface QuoteFallbackContact {
+  phone: string | null;
+  email: string | null;
+}
+
+function AlternativeContact({ contact, location }: { contact: QuoteFallbackContact | undefined; location: string }) {
+  const phoneHref = buildPhoneHref(contact?.phone ?? null);
+  const emailHref = buildEmailHref(contact?.email ?? null);
+  if (!phoneHref && !emailHref) return null;
+  const linkClass = "font-semibold underline underline-offset-2";
+  return (
+    <>
+      {" "}
+      Se preferir, fale com a FolhaTec
+      {phoneHref && contact?.phone ? (
+        <>
+          {" "}pelo telefone{" "}
+          <TrackedLink href={phoneHref} external event="click_phone" params={{ cta_location: `${location}_fallback` }} className={linkClass}>
+            {contact.phone}
+          </TrackedLink>
+        </>
+      ) : null}
+      {phoneHref && emailHref ? " ou" : null}
+      {emailHref && contact?.email ? (
+        <>
+          {" "}pelo e-mail{" "}
+          <TrackedLink href={emailHref} external event="click_email" params={{ cta_location: `${location}_fallback` }} className={linkClass}>
+            {contact.email}
+          </TrackedLink>
+        </>
+      ) : null}
+      .
+    </>
+  );
+}
+
 export function QuoteForm({
   solution: initialSolution,
   segment: initialSegment,
   location,
+  fallbackContact,
 }: {
   solution: QuoteContextOption | null;
   segment: QuoteContextOption | null;
   /** Página/área onde o formulário está (parâmetro de tracking). */
   location: string;
+  /** Telefone/e-mail oferecidos se a solicitação não puder ser enviada. */
+  fallbackContact?: QuoteFallbackContact;
 }) {
   const formRef = useRef<HTMLFormElement>(null);
   const submittingRef = useRef(false);
@@ -136,22 +178,26 @@ export function QuoteForm({
         role="status"
         className="rounded-[var(--radius-panel)] border border-line bg-surface p-8 sm:p-10"
       >
-        <span className="flex size-12 items-center justify-center rounded-none bg-accent-soft text-accent-strong">
-          <Icon name="check" size={22} />
+        <span
+          className={cn(
+            "flex size-12 items-center justify-center rounded-none",
+            status === "success" ? "bg-accent-soft text-accent-strong" : "bg-surface-muted text-ink",
+          )}
+        >
+          <Icon name={status === "success" ? "check" : "message"} size={22} />
         </span>
         {status === "success" ? (
           <>
-            <h2 className="mt-6 text-2xl font-semibold tracking-tight">Solicitação enviada.</h2>
-            <p className="mt-3 leading-7 text-muted">
-              Recebemos suas informações. A equipe da FolhaTec vai analisar a sua aplicação e retornar pelo
-              contato informado.
-            </p>
+            <h2 className="mt-6 text-2xl font-semibold tracking-tight">Solicitação enviada com sucesso!</h2>
+            <p className="mt-3 leading-7 text-muted">Nossa equipe entrará em contato.</p>
           </>
         ) : (
           <>
-            <h2 className="mt-6 text-2xl font-semibold tracking-tight">Solicitação validada.</h2>
+            {/* Envio real não ativo (sem configuração ou endereço não autorizado): nada foi encaminhado. */}
+            <h2 className="mt-6 text-2xl font-semibold tracking-tight">Solicitação não enviada.</h2>
             <p className="mt-3 leading-7 text-muted" data-testid="quote-stub-notice">
-              Ambiente de homologação: os dados foram validados, mas nenhum envio real foi realizado.
+              O envio pelo site não está ativo neste endereço, por isso seus dados não foram encaminhados à FolhaTec.
+              <AlternativeContact contact={fallbackContact} location={location} />
             </p>
           </>
         )}
@@ -349,6 +395,7 @@ export function QuoteForm({
       {status === "error" ? (
         <div role="alert" className="rounded-none border border-error/30 bg-error-soft p-4 text-sm text-error">
           Não foi possível enviar sua solicitação agora. Tente novamente em instantes.
+          <AlternativeContact contact={fallbackContact} location={location} />
         </div>
       ) : null}
 

@@ -1,13 +1,17 @@
 import { createHash } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
 import { sanitizeAttribution } from "@/features/quote/attribution";
-import { buildLead, deliverQuote } from "@/features/quote/server/deliver";
+import { buildLead, deliverQuote, hasDeliveryChannel } from "@/features/quote/server/deliver";
 import { getRateLimiter } from "@/features/quote/server/rate-limit";
 import type { QuoteApiResponse } from "@/features/quote/types";
 import { QUOTE_MAX_BODY_BYTES, validateQuote } from "@/features/quote/validation";
 import { getSegments, getSolutions } from "@/lib/content";
 
 export const dynamic = "force-dynamic";
+/** SMTP (Nodemailer) usa net/tls do Node.js — nunca Edge. */
+export const runtime = "nodejs";
+/** Teto da função; o envio SMTP tem timeouts próprios bem menores. */
+export const maxDuration = 30;
 
 function reply(body: QuoteApiResponse, status: number, headers?: Record<string, string>) {
   return NextResponse.json(body, {
@@ -26,10 +30,14 @@ function isRecord(value: unknown): value is Record<string, unknown> {
  * domínio). Sem `Origin` (ex.: clientes de servidor) segue para as demais
  * proteções — honeypot, validação e limites.
  */
+function requestHost(request: NextRequest): string | null {
+  return request.headers.get("x-forwarded-host") ?? request.headers.get("host");
+}
+
 function isCrossOrigin(request: NextRequest): boolean {
   const origin = request.headers.get("origin");
   if (!origin) return false;
-  const host = request.headers.get("x-forwarded-host") ?? request.headers.get("host");
+  const host = requestHost(request);
   try {
     return new URL(origin).host !== host;
   } catch {
@@ -72,7 +80,7 @@ export async function POST(request: NextRequest) {
   }
   if (!isRecord(body)) return reply({ ok: false, error: "invalid_json" }, 400);
 
-  const rate = await getRateLimiter().check(clientKey(request));
+  const rate = await getRateLimiter(hasDeliveryChannel()).check(clientKey(request));
   if (!rate.allowed) {
     return reply(
       { ok: false, error: "rate_limited" },
@@ -112,10 +120,14 @@ export async function POST(request: NextRequest) {
   }
 
   const lead = buildLead(data, sanitizeAttribution(body.attribution));
-  const result = await deliverQuote(lead, {
-    solution: solutions.find((item) => item.slug === data.solution)?.title ?? null,
-    segment: segments.find((item) => item.slug === data.segment)?.title ?? null,
-  });
+  const result = await deliverQuote(
+    lead,
+    {
+      solution: solutions.find((item) => item.slug === data.solution)?.title ?? null,
+      segment: segments.find((item) => item.slug === data.segment)?.title ?? null,
+    },
+    { host: requestHost(request) },
+  );
 
   switch (result.status) {
     case "delivered":

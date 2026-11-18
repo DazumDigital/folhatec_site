@@ -81,7 +81,13 @@ test.describe("Formulário de cotação", () => {
     expect(response.status()).toBe(202);
     expect(await response.json()).toEqual({ ok: true, status: "stub" });
 
-    await expect(page.getByTestId("quote-stub-notice")).toBeVisible();
+    // Nada foi encaminhado: o visitante é avisado e recebe canais alternativos.
+    await expect(page.getByRole("heading", { name: "Solicitação não enviada." })).toBeVisible();
+    const notice = page.getByTestId("quote-stub-notice");
+    await expect(notice).toContainText("seus dados não foram encaminhados");
+    await expect(notice.locator('a[href^="tel:"]')).toHaveCount(1);
+    await expect(notice.locator('a[href="mailto:folhatec@folhatec.com.br"]')).toHaveCount(1);
+    await expect(page.getByText(/sucesso/i)).toHaveCount(0);
     expect(await getEvents(page, "form_submit")).toHaveLength(1);
     expect(await getEvents(page, "form_success")).toHaveLength(0);
   });
@@ -93,7 +99,8 @@ test.describe("Formulário de cotação", () => {
     await page.goto("/solicitar-cotacao?solucao=etiquetas&segmento=logistica");
     await fillValidForm(page);
     await page.getByRole("button", { name: "Solicitar cotação" }).click();
-    await expect(page.getByRole("heading", { name: "Solicitação enviada." })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Solicitação enviada com sucesso!" })).toBeVisible();
+    await expect(page.getByText("Nossa equipe entrará em contato.")).toBeVisible();
     const success = await getEvents(page, "form_success");
     expect(success).toHaveLength(1);
     expect(success[0]).toMatchObject({ form: "quote", solution: "etiquetas", segment: "logistica" });
@@ -125,7 +132,11 @@ test.describe("Formulário de cotação", () => {
     await page.goto("/solicitar-cotacao");
     await fillValidForm(page);
     await page.getByRole("button", { name: "Solicitar cotação" }).click();
-    await expect(page.locator("form").getByRole("alert")).toContainText("Não foi possível enviar");
+    const alert = page.locator("form").getByRole("alert");
+    await expect(alert).toContainText("Não foi possível enviar");
+    await expect(alert.locator('a[href="mailto:folhatec@folhatec.com.br"]')).toHaveCount(1);
+    await expect(alert.locator('a[href^="tel:"]')).toHaveCount(1);
+    await expect(page.getByText(/sucesso/i)).toHaveCount(0);
     expect(await getEvents(page, "form_success")).toHaveLength(0);
     expect(await getEvents(page, "form_error")).toHaveLength(1);
   });

@@ -51,7 +51,12 @@ export default async function ContactPage() {
             ) : null}
           </div>
           <div className="min-w-0">
-            <QuoteForm location="contact_page" solution={null} segment={null} />
+            <QuoteForm
+              location="contact_page"
+              solution={null}
+              segment={null}
+              fallbackContact={{ phone: settings.contact.phone, email: settings.contact.email }}
+            />
           </div>
         </div>
       </section>
